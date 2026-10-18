@@ -28,6 +28,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);-webkit-us
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 h1{margin:0;font-size:clamp(17px,2.4vw,24px);font-weight:700;letter-spacing:.06em}
+.ttl{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;min-width:0}
+.prog{font:700 clamp(16px,2.2vw,22px)/1 var(--font-num);color:var(--muted);font-variant-numeric:tabular-nums}
 button{font-family:var(--font-ui);color:var(--ink);touch-action:manipulation}
 button:focus-visible,.board:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
 .modebtn{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:22px;border:2px solid var(--line);background:var(--surface);font-size:16px;font-weight:700;cursor:pointer}
@@ -94,21 +96,24 @@ footer{display:flex;justify-content:space-between;gap:12px}
 .btn.primary.ready{box-shadow:0 0 0 4px var(--ten)}
 
 /* せってい */
-.sheet{position:fixed;inset:0;z-index:100;background:var(--scrim);display:grid;place-items:center;padding:16px}
+.sheet{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;overflow:auto;
+  padding-block:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.panel .apptitle{margin:0;font-size:clamp(24px,4vw,34px);font-weight:700;letter-spacing:.08em;text-align:center;color:var(--ink)}
+.panel .start{align-self:center;min-height:60px;padding:0 48px;border-radius:30px;font-size:22px}
 .panel{background:var(--surface);border-radius:20px;padding:20px 22px;width:min(520px,100%);max-height:100%;overflow:auto;box-sizing:border-box;display:flex;flex-direction:column;gap:18px}
 .panel h2{margin:0 0 8px;font-size:15px;color:var(--muted);letter-spacing:.08em}
 .seg{display:flex;flex-wrap:wrap;gap:8px}
 .seg button{min-height:48px;min-width:48px;padding:0 16px;border-radius:24px;border:2px solid var(--line);background:var(--surface);font-size:17px;font-weight:700;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--primary);color:var(--onPrimary);border-color:var(--primary)}
 .seg.nums button{font-family:var(--font-num);padding:0;width:48px}
-.panel .close{align-self:flex-end}
 
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 
 <div class="app">
   <header>
-    <h1>くりあがりの たしざん</h1>
+    <div class="ttl"><h1>くりあがりの たしざん</h1><span class="prog" id="prog"></span></div>
     <button class="modebtn" id="openSet" type="button" aria-label="せってい">
       <svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
       <span id="modeLabel">さくらんぼ</span>
@@ -134,8 +139,9 @@ footer{display:flex;justify-content:space-between;gap:12px}
   </footer>
 </div>
 
-<div class="sheet" id="sheet" hidden>
+<div class="sheet" id="sheet">
   <div class="panel" role="dialog" aria-modal="true" aria-label="せってい">
+    <h1 class="apptitle">くりあがりの たしざん</h1>
     <div>
       <h2>かんがえかた</h2>
       <div class="seg" id="segMode">
@@ -149,13 +155,21 @@ footer{display:flex;justify-content:space-between;gap:12px}
       <div class="seg nums" id="segB"></div>
     </div>
     <div>
+      <h2>もんだいの かず</h2>
+      <div class="seg" id="segCount">
+        <button type="button" data-count="5">5もん</button>
+        <button type="button" data-count="10">10もん</button>
+        <button type="button" data-count="15">15もん</button>
+      </div>
+    </div>
+    <div>
       <h2>ことばの ヒント</h2>
       <div class="seg" id="segHint">
         <button type="button" data-hint="1">あり</button>
         <button type="button" data-hint="0">なし</button>
       </div>
     </div>
-    <button class="btn primary close" id="closeSet" type="button">とじる</button>
+    <button class="btn primary start" id="closeSet" type="button">スタート</button>
   </div>
 </div>
 
@@ -166,15 +180,15 @@ const RM=matchMedia('(prefers-reduced-motion: reduce)');
 const T=0.45;
 const MODES={cherry:'さくらんぼ',blocks:'ブロック',fingers:'ゆび'};
 const KEY='tkk-kuriagari-v1';
-let S={mode:'cherry',bs:[2,3,4,5,6,7,8,9],hint:true};
+let S={mode:'cherry',bs:[2,3,4,5,6,7,8,9],hint:true,count:10};
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');
-  if(s&&MODES[s.mode]&&Array.isArray(s.bs)&&s.bs.length) S={mode:s.mode,bs:s.bs.filter(n=>n>=2&&n<=9),hint:s.hint!==false};
+  if(s&&MODES[s.mode]&&Array.isArray(s.bs)&&s.bs.length) S={mode:s.mode,bs:s.bs.filter(n=>n>=2&&n<=9),hint:s.hint!==false,count:[5,10,15].includes(s.count)?s.count:10};
   if(!S.bs.length) S.bs=[2,3,4,5,6,7,8,9];
 }catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 
 const board=$('#board'),va=$('#va'),vb=$('#vb'),na=$('#na'),nb=$('#nb'),ans=$('#ans'),ansv=$('#ansv'),cap=$('#cap'),backBtn=$('#back'),nextBtn=$('#next');
-let st=null,hist=[],deck=[],busy=false,animFingers=false,timer=0,first=true,gestureEnd=-1e9,drag=null;
+let st=null,hist=[],deck=[],busy=false,animFingers=false,timer=0,first=true,gestureEnd=-1e9,drag=null,qi=0;
 
 /* ---- もんだい ---- */
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -264,6 +278,8 @@ function render(){
   else{cap.style.transitionDelay='0s';cap.classList.add('off')}
   backBtn.disabled=!hist.length||busy;
   nextBtn.classList.toggle('ready',step>=last);
+  nextBtn.textContent=qi>=S.count?'おわり':'つぎの もんだい';
+  $('#prog').textContent=qi+' / '+S.count;
 }
 
 /* ---- すすむ・もどる ---- */
@@ -325,9 +341,9 @@ function cancelDrag(){if(drag){unlisten();if(drag.fly)drag.fly.remove();drag=nul
 /* ---- そうさ ---- */
 board.addEventListener('click',()=>{if(performance.now()-gestureEnd<350)return;advance()});
 backBtn.addEventListener('click',back);
-nextBtn.addEventListener('click',()=>newProblem());
+nextBtn.addEventListener('click',()=>{if(qi>=S.count){openSet();return}qi++;newProblem()});
 document.addEventListener('keydown',e=>{
-  if(!$('#sheet').hidden){if(e.key==='Escape')closeSet();return}
+  if(!$('#sheet').hidden||!st)return;
   if((e.key==='Enter'||e.key===' ')&&e.target.closest('button'))return;
   if(e.key==='Enter'||e.key===' '||e.key==='ArrowRight'){e.preventDefault();advance()}
   else if(e.key==='ArrowLeft'||e.key==='Backspace'){e.preventDefault();back()}
@@ -337,23 +353,24 @@ document.addEventListener('keydown',e=>{
 const segB=$('#segB');
 for(let n=2;n<=9;n++){const bt=el('button',null,String(n));bt.type='button';bt.dataset.b=n;segB.append(bt)}
 function syncSet(){
+  document.querySelectorAll('#segCount button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.count===S.count));
   $('#modeLabel').textContent=MODES[S.mode];
   document.querySelectorAll('#segMode button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===S.mode));
   document.querySelectorAll('#segB button').forEach(b=>b.setAttribute('aria-pressed',S.bs.includes(+b.dataset.b)));
   document.querySelectorAll('#segHint button').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.hint==='1')===S.hint));
 }
 $('#segMode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.dataset.mode===S.mode)return;
-  S.mode=b.dataset.mode;save();syncSet();newProblem([st.a,st.b])});
+  S.mode=b.dataset.mode;save();syncSet()});
 segB.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const n=+b.dataset.b;
   if(S.bs.includes(n)){if(S.bs.length===1)return;S.bs=S.bs.filter(x=>x!==n)}else S.bs=[...S.bs,n].sort((x,y)=>x-y);
-  save();syncSet();deck=[];if(!S.bs.includes(st.b))newProblem()});
-$('#segHint').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.hint=b.dataset.hint==='1';save();syncSet();render()});
-function openSet(){syncSet();$('#sheet').hidden=false;$('#closeSet').focus()}
-function closeSet(){$('#sheet').hidden=true;$('#openSet').focus()}
+  save();syncSet();deck=[]});
+$('#segHint').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.hint=b.dataset.hint==='1';save();syncSet()});
+$('#segCount').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.count=+b.dataset.count;save();syncSet()});
+function openSet(){clearTimeout(timer);cancelDrag();syncSet();$('#sheet').hidden=false;$('#closeSet').focus()}
+function closeSet(){$('#sheet').hidden=true;deck=[];qi=1;newProblem();board.focus()}
 $('#openSet').addEventListener('click',openSet);
 $('#closeSet').addEventListener('click',closeSet);
-$('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSet()});
 
-syncSet();newProblem();
+syncSet();
 })();
 </script>
